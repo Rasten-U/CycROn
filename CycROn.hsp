@@ -1,0 +1,56 @@
+#include "hsp3utf.as"
+#include "hspinet.as"
+#include "hsp3util.as"
+
+screen 0,320,480
+gsel 0,2
+title "CycROn 1.0"
+
+notesel list
+num=10
+
+*ui
+	pos 10,10:progbar 300,40
+	pos 10,60:objsize 300,370:objmode objmode_usefont:listbox flg,0,list
+	pos 10,430:input num,80,40
+	pos 100,430:objsize 100,40:button "Load",*connect
+	pos 210,430:objsize 100,40:button "Open",*open
+	stop
+*connect
+	objenable 3,0
+	netinit
+	if stat!0:dialog "Failed.":end
+*load
+	progbar_set 0,100/num
+	repeat num
+		neturl "https://ja.uncyclopedia.info/wiki/%E7%89%B9%E5%88%A5:%E3%81%8A%E3%81%BE%E3%81%8B%E3%81%9B%E8%A1%A8%E7%A4%BA"
+		netrequest_get ""
+		repeat
+			netexec res
+			if res>0:break
+			if res<0:goto *error
+			await 50
+		loop
+		
+		netgetv html
+		titlePos=instr(html,0,"<title>")
+		EndPos=instr(html,0," -")
+		titlePos+=7
+		noteadd strmid(html,titlePos,EndPos-titlePos)
+		progbar_step 0
+		objprm 1,list
+		await 1
+	loop
+	objenable 3,1
+	stop
+*open
+	noteget pgnm,flg
+	;cnvstoa pgnm,pgnm
+	;if flg!notemax:strrep pgnm,"\n",""
+	;urlencode upgnm,pgnm
+	exec "https://ja.uncyclopedia.info/wiki/"+pgnm,16
+	stop
+*error
+	neterror nerr
+	dialog "ERROR "+nerr
+	stop
