@@ -1,29 +1,44 @@
+#packopt name "CycROn2"
+
 #include "hsp3utf.as"
 #include "hspinet.as"
 #include "hsp3util.as"
 
+#include "みんな関数ならいいのに.as"
+
+onexit *exit
 screen 0,320,480
 gsel 0,2
-title "CycROn 1.0"
+title "CycROn 2.1"
+
+url="https://ja.uncyclopedia.info/wiki/"
+random="特別:おまかせ表示"
+random=cnvatos(random)
 
 notesel list
 num=10
 
 *ui
+	objmode objmode_usefont
+	
+	color 244,245,246:boxf
+	
 	pos 10,10:progbar 300,40
-	pos 10,60:objsize 300,370:objmode objmode_usefont:listbox flg,0,list
-	pos 10,430:input num,80,40
-	pos 100,430:objsize 100,40:button "Load",*connect
-	pos 210,430:objsize 100,40:button "Open",*open
+	pos 10,60:objsize 300,370:listbox flg,0,list
+	pos 10,430:objsize 68,40:input num,68,40
+	pos 88,430:objsize 67,40:button gosub "Load",*connect
+	pos 165,430:objsize 67,40:button gosub "Open",*open
+	pos 242,430:objsize 68,40:button gosub "Delete",*ldel
 	stop
 *connect
+	gsel 0
 	objenable 3,0
 	netinit
 	if stat!0:dialog "Failed.":end
 *load
-	progbar_set 0,100/num
+	progbar_set 0,num
 	repeat num
-		neturl "https://ja.uncyclopedia.info/wiki/%E7%89%B9%E5%88%A5:%E3%81%8A%E3%81%BE%E3%81%8B%E3%81%9B%E8%A1%A8%E7%A4%BA"
+		neturl url+random
 		netrequest_get ""
 		repeat
 			netexec res
@@ -36,21 +51,67 @@ num=10
 		titlePos=instr(html,0,"<title>")
 		EndPos=instr(html,0," -")
 		titlePos+=7
-		noteadd strmid(html,titlePos,EndPos-titlePos)
+		pagename=strmid(html,titlePos,EndPos-titlePos)
+
+		strrep pagename,"?","%3F"
+		strrep pagename,"&amp;","&"
+		
+		noteadd pagename
 		progbar_step 0
 		objprm 1,list
 		await 1
 	loop
 	objenable 3,1
-	stop
+	return
 *open
-	noteget pgnm,flg
-	;cnvstoa pgnm,pgnm
-	;if flg!notemax:strrep pgnm,"\n",""
-	;urlencode upgnm,pgnm
-	exec "https://ja.uncyclopedia.info/wiki/"+pgnm,16
-	stop
+	exec url+noteget(flg),16
+	return
+*ldel
+	notedel flg
+	objprm 1,list
+	return
 *error
 	neterror nerr
-	dialog "ERROR "+nerr
+	dialog "ERROR "+cnvstoa(nerr)
 	stop
+*exit
+	if notemax>0{
+		dialog "HTMLファイルに保存しますか?",2,"CycROn 2.1"
+		if stat=6{
+			notesel export
+			if exist("CycROn.html")=-1{
+				noteadd "<!DOCTYPE HTML>"
+				noteadd "<html>"
+				noteadd "	<head>"
+				noteadd "		<meta charset=UTF-8>"
+				noteadd "		<title>CycRON 2.1</title>"
+				noteadd "	</head>"
+				noteadd "	<body>"
+				noteadd "		<h1>CycROn2.1</h1>"
+				noteadd "		<h2>"+gettime(0)+"/"+gettime(1)+"/"+gettime(3)+" "+gettime(4)+":"+gettime(5)+":"+gettime(6)+"</h2>"
+				noteadd "		<ul>"
+			}else{
+				noteload "CycROn.html"
+				repeat 2
+					notedel notemax-1
+				loop
+				noteadd "		<h2>"+gettime(0)+"/"+gettime(1)+"/"+gettime(3)+" "+gettime(4)+":"+gettime(5)+":"+gettime(6)+"</h2>"
+			}
+			
+			notesel list
+			repeat notemax
+				pagename=noteget(cnt)
+				notesel export
+				noteadd "			<li><a href="+url+pagename+" target=blank>"+pagename+"</a></li>"
+				notesel list
+			loop
+			
+			notesel export
+			noteadd "		</ul>"
+			noteadd "	</body>"
+			noteadd "</html>"
+			
+			notesave "CycROn.html"
+		}
+	}
+	end
